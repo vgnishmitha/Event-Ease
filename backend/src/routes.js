@@ -24,6 +24,7 @@ import {
   myRegistrations,
   cancelRegistration,
   allRegistrations,
+  getEventRegistrations,
 } from "./controllers/registrationController.js";
 
 // ================= MIDDLEWARES =================
@@ -51,6 +52,7 @@ const router = (app) => {
   app.get("/api/registrations/my", auth, myRegistrations);
   app.delete("/api/registrations/:id", auth, cancelRegistration);
   app.get("/api/registrations", auth, adminOnly, allRegistrations);
+  app.get("/api/registrations/event/:eventId", auth, getEventRegistrations);
 };
 
 export default router;

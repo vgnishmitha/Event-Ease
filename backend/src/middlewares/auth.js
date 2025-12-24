@@ -1,32 +1,67 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { error } from "../helper/responseHelper.js";
 
+/**
+ * Authentication middleware - verifies JWT token and attaches user to request
+ */
 export const auth = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "No token provided" });
+    // Validate JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      return error(res, "JWT_SECRET is not configured in environment variables", 500);
+    }
 
+    // Extract token from Authorization header
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return error(res, "No token provided", 401);
+    }
+
+    const token = authHeader.split(" ")[1];
+    if (!token) {
+      return error(res, "No token provided", 401);
+    }
+
+    // Verify and decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find user by ID from token
     const user = await User.findById(decoded.id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-    if (user.isBlocked)
-      return res.status(403).json({ message: "User is blocked" });
+    if (!user) {
+      return error(res, "User not found", 404);
+    }
 
+    // Check if user is blocked
+    if (user.isBlocked) {
+      return error(res, "User account is blocked", 403);
+    }
+
+    // Attach user to request object for use in routes
     req.user = user;
     next();
   } catch (err) {
-    return res.status(401).json({ message: "Invalid token" });
+    // Handle invalid or expired tokens
+    return error(res, "Invalid or expired token", 401);
   }
 };
 
+/**
+ * Authorization middleware - ensures user has admin role
+ */
 export const adminOnly = (req, res, next) => {
-  if (req.user.role !== "admin")
-    return res.status(403).json({ message: "Admin only" });
+  if (req.user.role !== "admin") {
+    return error(res, "Admin access required", 403);
+  }
   next();
 };
 
+/**
+ * Authorization middleware - ensures user has organizer role
+ */
 export const organizerOnly = (req, res, next) => {
-  if (req.user.role !== "organizer")
-    return res.status(403).json({ message: "Organizer only" });
+  if (req.user.role !== "organizer") {
+    return error(res, "Organizer access required", 403);
+  }
   next();
 };

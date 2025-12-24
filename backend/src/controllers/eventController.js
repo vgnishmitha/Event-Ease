@@ -1,8 +1,10 @@
 import Event from "../models/Event.js";
 import { success, error } from "../helper/responseHelper.js";
 
-// Create event
-// Create event (no duplicate events)
+/**
+ * Create a new event
+ * Prevents duplicate events with same title, date, category for the same organizer
+ */
 export const createEvent = async (req, res) => {
   try {
     const { title, date, category, location } = req.body;
@@ -35,17 +37,33 @@ export const createEvent = async (req, res) => {
   }
 };
 
-// Get all events
+/**
+ * Get all events with optional filtering
+ */
 export const getEvents = async (req, res) => {
-  const events = await Event.find().populate("organizer");
-  success(res, "Events fetched", events);
+  try {
+    const { status } = req.query;
+    const query = status ? { status } : {};
+    const events = await Event.find(query).populate("organizer");
+    success(res, "Events fetched", events);
+  } catch (err) {
+    error(res, err.message || "Failed to fetch events", 500);
+  }
 };
 
-// Get single event
+/**
+ * Get a single event by ID
+ */
 export const getEvent = async (req, res) => {
-  const event = await Event.findById(req.params.id).populate("organizer");
-  if (!event) return error(res, "Event not found", 404);
-  success(res, "Event fetched", event);
+  try {
+    const event = await Event.findById(req.params.id).populate("organizer");
+    if (!event) {
+      return error(res, "Event not found", 404);
+    }
+    success(res, "Event fetched", event);
+  } catch (err) {
+    error(res, err.message || "Failed to fetch event", 500);
+  }
 };
 
 // Update event
@@ -58,23 +76,12 @@ export const updateEvent = async (req, res) => {
     );
 
     if (!event) {
-      return res.status(404).json({
-        success: false,
-        message: "Event not found",
-        data: null,
-      });
+      return error(res, "Event not found", 404);
     }
 
-    return res.status(200).json({
-      success: true,
-      message: "Event updated successfully",
-      data: event,
-    });
+    success(res, "Event updated successfully", event);
   } catch (err) {
-    return res.status(500).json({
-      success: false,
-      message: err.message,
-    });
+    error(res, err.message, 500);
   }
 };
 
@@ -106,19 +113,14 @@ export const approveEvent = async (req, res) => {
 // My events for organizer
 export const myEvents = async (req, res) => {
   try {
-    const organizerId = req.user.id; // logged-in organizer
+    const organizerId = req.user._id; // Use _id for consistency
 
-    const events = await Event.find({ organizer: organizerId });
+    const events = await Event.find({ organizer: organizerId }).populate(
+      "organizer"
+    );
 
-    return res.status(200).json({
-      success: true,
-      message: "Organizer events fetched",
-      data: events,
-    });
-  } catch (error) {
-    return res.status(500).json({
-      success: false,
-      message: "Server error",
-    });
+    success(res, "Organizer events fetched", events);
+  } catch (err) {
+    error(res, err.message || "Server error", 500);
   }
 };

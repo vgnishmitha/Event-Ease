@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Trash2, Loader } from "lucide-react";
 import EventCard from "../components/EventCard";
 import { registrationService } from "../services/eventService";
@@ -21,9 +20,12 @@ const MyRegistrationsPage = () => {
     try {
       setLoading(true);
       const response = await registrationService.myRegistrations();
-      setRegistrations(response.data);
+      // Backend returns: { success: true, message: "...", data: [...] }
+      setRegistrations(response.data?.data || response.data || []);
     } catch (err) {
-      setError("Failed to load your registrations");
+      setError(
+        err.response?.data?.message || "Failed to load your registrations"
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -52,15 +54,12 @@ const MyRegistrationsPage = () => {
           {/* Header */}
           <div className="bg-white border-b border-primary-100">
             <div className="section-container py-8">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-              >
+              <div>
                 <h1 className="text-3xl font-bold text-primary-900 mb-2">
                   My Registrations
                 </h1>
                 <p className="text-primary-600">Events you're registered for</p>
-              </motion.div>
+              </div>
             </div>
           </div>
 
@@ -88,32 +87,21 @@ const MyRegistrationsPage = () => {
                 <LoadingSpinner />
               </div>
             ) : registrations.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 card p-8"
-              >
+              <div className="text-center py-16 card p-8">
                 <p className="text-2xl text-primary-600 mb-4">
                   No registrations yet
                 </p>
-                <a href="/" className="btn-primary inline-block">
+                <button
+                  onClick={() => (window.location.href = "/")}
+                  className="btn-primary inline-block"
+                >
                   Browse Events
-                </a>
-              </motion.div>
+                </button>
+              </div>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {registrations.map((registration, index) => (
-                  <motion.div
-                    key={registration._id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="relative"
-                  >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {registrations.map((registration) => (
+                  <div key={registration._id} className="relative">
                     <EventCard
                       event={registration.event}
                       onAction={() =>
@@ -134,9 +122,9 @@ const MyRegistrationsPage = () => {
                         <Trash2 className="w-4 h-4" />
                       )}
                     </button>
-                  </motion.div>
+                  </div>
                 ))}
-              </motion.div>
+              </div>
             )}
           </div>
         </div>

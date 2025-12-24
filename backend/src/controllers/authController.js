@@ -39,16 +39,56 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return error(res, "User not found", 404);
+    
+    // Log request for debugging (remove in production)
+    if (process.env.NODE_ENV !== "production") {
+      console.log("Login attempt:", { email, hasPassword: !!password });
+    }
+    
+    // Validate required fields
+    if (!email || !email.trim()) {
+      return error(res, "Email is required", 400);
+    }
+    if (!password || !password.trim()) {
+      return error(res, "Password is required", 400);
+    }
+    
+    // Validate JWT_SECRET is configured
+    if (!process.env.JWT_SECRET) {
+      console.error("JWT_SECRET is not configured!");
+      return error(res, "JWT_SECRET is not configured in environment variables", 500);
+    }
 
+    // Find user by email (case-insensitive)
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user) {
+      return error(res, "Invalid email or password", 401);
+    }
+
+    // Check if user is blocked
+    if (user.isBlocked) {
+      return error(res, "Your account has been blocked. Please contact administrator.", 403);
+    }
+
+    // Compare password
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return error(res, "Incorrect password");
+    if (!match) {
+      return error(res, "Invalid email or password", 401);
+    }
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    success(res, "Login successful", { user, token });
+    // Generate JWT token
+    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: "7d", // Token expires in 7 days
+    });
+    
+    // Remove password from user object before sending
+    const userResponse = user.toObject();
+    delete userResponse.password;
+    
+    success(res, "Login successful", { user: userResponse, token });
   } catch (err) {
-    error(res, err.message, 500);
+    console.error("Login error:", err);
+    error(res, err.message || "Login failed. Please try again.", 500);
   }
 };
 

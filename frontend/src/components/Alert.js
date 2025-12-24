@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { AlertCircle, CheckCircle, XCircle, Loader } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 
 const Alert = ({
   type = "info",
@@ -11,7 +10,7 @@ const Alert = ({
 }) => {
   const [isVisible, setIsVisible] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (autoClose) {
       const timer = setTimeout(() => {
         setIsVisible(false);
@@ -55,27 +54,33 @@ const Alert = ({
   const current = config[type];
   const IconComponent = current.icon;
 
+  if (!isVisible) return null;
+
   return (
-    <AnimatePresence>
-      {isVisible && (
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -10 }}
-          className={`${current.bg} border ${current.border} rounded-lg p-4 flex items-start space-x-3`}
+    <div
+      className={`${current.bg} border ${current.border} rounded-lg p-4 flex items-start space-x-3 transition-opacity`}
+    >
+      <IconComponent
+        className={`w-5 h-5 flex-shrink-0 ${current.iconColor}`}
+      />
+      <div className="flex-1">
+        {title && (
+          <h3 className={`font-semibold ${current.color}`}>{title}</h3>
+        )}
+        {message && <p className={`text-sm ${current.color}`}>{message}</p>}
+      </div>
+      {onClose && (
+        <button
+          onClick={() => {
+            setIsVisible(false);
+            onClose();
+          }}
+          className="text-gray-400 hover:text-gray-600"
         >
-          <IconComponent
-            className={`w-5 h-5 flex-shrink-0 ${current.iconColor}`}
-          />
-          <div className="flex-1">
-            {title && (
-              <h3 className={`font-semibold ${current.color}`}>{title}</h3>
-            )}
-            {message && <p className={`text-sm ${current.color}`}>{message}</p>}
-          </div>
-        </motion.div>
+          <XCircle className="w-4 h-4" />
+        </button>
       )}
-    </AnimatePresence>
+    </div>
   );
 };
 

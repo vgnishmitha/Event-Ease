@@ -43,19 +43,19 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Support</h4>
             <ul className="space-y-2 text-sm text-primary-200">
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   Help Center
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   Contact Us
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   FAQs
-                </a>
+                </button>
               </li>
             </ul>
           </div>
@@ -65,19 +65,19 @@ const Footer = () => {
             <h4 className="font-semibold mb-4">Legal</h4>
             <ul className="space-y-2 text-sm text-primary-200">
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   Privacy Policy
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   Terms of Service
-                </a>
+                </button>
               </li>
               <li>
-                <a href="#" className="hover:text-white transition">
+                <button className="hover:text-white transition text-left">
                   Cookie Policy
-                </a>
+                </button>
               </li>
             </ul>
           </div>
@@ -89,24 +89,24 @@ const Footer = () => {
               © {currentYear} EventEase. All rights reserved.
             </p>
             <div className="flex space-x-4 mt-4 md:mt-0">
-              <a
-                href="#"
+              <button
                 className="text-primary-200 hover:text-white transition"
+                aria-label="Twitter"
               >
                 Twitter
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
                 className="text-primary-200 hover:text-white transition"
+                aria-label="LinkedIn"
               >
                 LinkedIn
-              </a>
-              <a
-                href="#"
+              </button>
+              <button
                 className="text-primary-200 hover:text-white transition"
+                aria-label="Instagram"
               >
                 Instagram
-              </a>
+              </button>
             </div>
           </div>
         </div>

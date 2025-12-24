@@ -6,8 +6,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
-import Navbar from "./components/Navbar";
-import Footer from "./components/Footer";
+import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
@@ -20,6 +19,11 @@ import MyEventsPage from "./pages/MyEventsPage";
 import MyRegistrationsPage from "./pages/MyRegistrationsPage";
 import AdminPage from "./pages/AdminPage";
 
+// Admin Pages
+import AdminLogin from "./admin/AdminLogin";
+import AdminDashboard from "./admin/AdminDashboard";
+import AdminRoute from "./admin/AdminRoute";
+
 // Styles
 import "./index.css";
 
@@ -27,55 +31,63 @@ function App() {
   return (
     <Router>
       <AuthProvider>
-        <div className="flex flex-col min-h-screen bg-primary-50">
-          <Navbar />
-          <main className="flex-grow">
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/event/:id" element={<EventDetailPage />} />
+        <Layout>
+          <Routes>
+            {/* Admin Routes */}
+            <Route path="/admin" element={<AdminLogin />} />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <AdminRoute>
+                  <AdminDashboard />
+                </AdminRoute>
+              }
+            />
 
-              {/* Protected Routes */}
-              <Route
-                path="/create-event"
-                element={
-                  <ProtectedRoute
-                    element={<CreateEventPage />}
-                    requiredRole="organizer"
-                  />
-                }
-              />
-              <Route
-                path="/my-events"
-                element={
-                  <ProtectedRoute
-                    element={<MyEventsPage />}
-                    requiredRole="organizer"
-                  />
-                }
-              />
-              <Route
-                path="/my-registrations"
-                element={<ProtectedRoute element={<MyRegistrationsPage />} />}
-              />
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute
-                    element={<AdminPage />}
-                    requiredRole="admin"
-                  />
-                }
-              />
+            {/* Public Routes */}
+            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/home" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/event/:id" element={<EventDetailPage />} />
 
-              {/* Redirect unknown routes */}
-              <Route path="*" element={<Navigate to="/" />} />
-            </Routes>
-          </main>
-          <Footer />
-        </div>
+            {/* Protected Routes */}
+            <Route
+              path="/create-event"
+              element={
+                <ProtectedRoute
+                  element={<CreateEventPage />}
+                  requiredRole="organizer"
+                />
+              }
+            />
+            <Route
+              path="/my-events"
+              element={
+                <ProtectedRoute
+                  element={<MyEventsPage />}
+                  requiredRole="organizer"
+                />
+              }
+            />
+            <Route
+              path="/my-registrations"
+              element={<ProtectedRoute element={<MyRegistrationsPage />} />}
+            />
+            <Route
+              path="/admin/panel"
+              element={
+                <ProtectedRoute
+                  element={<AdminPage />}
+                  requiredRole="admin"
+                />
+              }
+            />
+
+            {/* Redirect unknown routes */}
+            <Route path="*" element={<Navigate to="/login" />} />
+          </Routes>
+        </Layout>
       </AuthProvider>
     </Router>
   );

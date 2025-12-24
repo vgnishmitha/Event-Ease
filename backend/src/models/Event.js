@@ -2,14 +2,43 @@ import mongoose from "mongoose";
 
 const eventSchema = new mongoose.Schema(
   {
-    title: String,
-    description: String,
-    location: String,
-    category: String,
-    date: String,
-    price: Number,
-    image: String,
-    organizer: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    title: {
+      type: String,
+      required: [true, "Title is required"],
+      trim: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    location: {
+      type: String,
+      required: [true, "Location is required"],
+      trim: true,
+    },
+    category: {
+      type: String,
+      required: [true, "Category is required"],
+      trim: true,
+    },
+    date: {
+      type: String,
+      required: [true, "Date is required"],
+    },
+    price: {
+      type: Number,
+      default: 0,
+      min: [0, "Price cannot be negative"],
+    },
+    image: {
+      type: String,
+      trim: true,
+    },
+    organizer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: [true, "Organizer is required"],
+    },
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],

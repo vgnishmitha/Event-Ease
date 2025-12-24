@@ -1,7 +1,6 @@
 import React from "react";
-import { MapPin, Calendar, Users, Loader } from "lucide-react";
+import { MapPin, Calendar, Loader } from "lucide-react";
 import { formatDate, formatCurrency } from "../utils/helpers";
-import { motion } from "framer-motion";
 
 const EventCard = ({
   event,
@@ -10,10 +9,7 @@ const EventCard = ({
   isLoading = false,
 }) => {
   return (
-    <motion.div
-      whileHover={{ y: -5 }}
-      className="card overflow-hidden group cursor-pointer"
-    >
+    <div className="card overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
       {/* Image Container */}
       <div className="relative h-48 bg-gradient-to-br from-primary-200 to-primary-100 overflow-hidden">
         {event.image ? (
@@ -89,7 +85,7 @@ const EventCard = ({
           )}
         </button>
       </div>
-    </motion.div>
+    </div>
   );
 };
 

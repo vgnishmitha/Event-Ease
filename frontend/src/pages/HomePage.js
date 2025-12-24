@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Search, MapPin, Filter } from "lucide-react";
 import EventCard from "../components/EventCard";
 import { eventService } from "../services/eventService";
@@ -20,9 +19,12 @@ const HomePage = () => {
     try {
       setLoading(true);
       const response = await eventService.getEvents({ status: "approved" });
-      setEvents(response.data?.data || []);
+      // Backend returns: { success: true, message: "...", data: [...] }
+      setEvents(response.data?.data || response.data || []);
     } catch (err) {
-      setError("Failed to load events. Please try again.");
+      setError(
+        err.response?.data?.message || "Failed to load events. Please try again."
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -45,11 +47,7 @@ const HomePage = () => {
       {/* Hero Section */}
       <div className="bg-white border-b border-primary-100">
         <div className="section-container py-16 md:py-24">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center max-w-3xl mx-auto"
-          >
+          <div className="text-center max-w-3xl mx-auto">
             <h1 className="text-4xl md:text-5xl font-bold text-primary-900 mb-4">
               Discover Events That <span className="text-gradient">Matter</span>
             </h1>
@@ -69,7 +67,7 @@ const HomePage = () => {
                 className="input-field pl-12 text-lg"
               />
             </div>
-          </motion.div>
+          </div>
         </div>
       </div>
 
@@ -108,11 +106,7 @@ const HomePage = () => {
             <LoadingSpinner />
           </div>
         ) : filteredEvents.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center py-16"
-          >
+          <div className="text-center py-16">
             <MapPin className="w-16 h-16 text-primary-300 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-primary-900 mb-2">
               No Events Found
@@ -120,20 +114,11 @@ const HomePage = () => {
             <p className="text-primary-600">
               Try adjusting your search or filters
             </p>
-          </motion.div>
+          </div>
         ) : (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-          >
-            {filteredEvents.map((event, index) => (
-              <motion.div
-                key={event._id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-              >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event) => (
+              <div key={event._id}>
                 <EventCard
                   event={event}
                   onAction={() =>
@@ -141,9 +126,9 @@ const HomePage = () => {
                   }
                   actionLabel="View Details"
                 />
-              </motion.div>
+              </div>
             ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

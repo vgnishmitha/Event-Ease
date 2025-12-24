@@ -1,7 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Lock, User, AlertCircle } from "lucide-react";
-import { motion } from "framer-motion";
+import { Mail, Lock } from "lucide-react";
 import { authService } from "../services/eventService";
 import { useAuth } from "../context/AuthContext";
 import { Alert } from "../components/Alert";
@@ -24,14 +23,31 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
+      // Try to login through backend API (works for both admin and regular users)
       const response = await authService.login(formData);
       // backend responses are wrapped as { success, message, data }
       const payload = response.data?.data || response.data || {};
       const user = payload.user || payload;
       const token = payload.token || response.data?.token;
+      
+      // Check if logged in user is admin
+      if (user.role === "admin") {
+        // Store admin session with JWT token
+        localStorage.setItem("adminToken", token);
+        localStorage.setItem("adminEmail", user.email);
+        localStorage.setItem("token", token);
+        localStorage.setItem("user", JSON.stringify(user));
+        setSuccess("Admin login successful! Redirecting...");
+        setTimeout(() => {
+          navigate("/admin/dashboard", { replace: true });
+        }, 500);
+        return;
+      }
+
+      // Regular user login
       login(user, token);
       setSuccess("Login successful! Redirecting...");
-      setTimeout(() => navigate("/"), 1500);
+      setTimeout(() => navigate("/home"), 1500);
     } catch (err) {
       setError(
         err.response?.data?.message ||
@@ -44,11 +60,7 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center px-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="w-full max-w-md"
-      >
+      <div className="w-full max-w-md">
         <div className="card p-8 md:p-10">
           {/* Header */}
           <div className="text-center mb-8">
@@ -146,7 +158,7 @@ const LoginPage = () => {
             </Link>
           </p>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

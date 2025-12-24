@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { motion } from "framer-motion";
-import { CheckCircle, XCircle, Clock, Users } from "lucide-react";
+import { CheckCircle, Clock, Users } from "lucide-react";
 import { registrationService, eventService } from "../services/eventService";
 import { Alert, LoadingSpinner } from "../components/Alert";
 import ProtectedRoute from "../components/ProtectedRoute";
@@ -23,10 +22,13 @@ const AdminPage = () => {
         registrationService.allRegistrations(),
         eventService.getEvents({ status: "pending" }),
       ]);
-      setRegistrations(regsResponse.data);
-      setPendingEvents(eventsResponse.data);
+      // Backend returns: { success: true, message: "...", data: [...] }
+      setRegistrations(regsResponse.data?.data || regsResponse.data || []);
+      setPendingEvents(eventsResponse.data?.data || eventsResponse.data || []);
     } catch (err) {
-      setError("Failed to load admin data");
+      setError(
+        err.response?.data?.message || "Failed to load admin data"
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -35,11 +37,14 @@ const AdminPage = () => {
 
   const handleApproveEvent = async (eventId) => {
     try {
-      await eventService.approveEvent(eventId);
+      await eventService.approveEvent(eventId, { status: "approved" });
       setSuccess("Event approved!");
       setPendingEvents(pendingEvents.filter((e) => e._id !== eventId));
+      fetchAdminData(); // Refresh data
     } catch (err) {
-      setError("Failed to approve event");
+      setError(
+        err.response?.data?.message || "Failed to approve event"
+      );
     }
   };
 
@@ -85,10 +90,7 @@ const AdminPage = () => {
             ) : (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 {/* Pending Events */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                >
+                <div>
                   <div className="card p-6">
                     <div className="flex items-center space-x-2 mb-6">
                       <Clock className="w-6 h-6 text-primary-600" />
@@ -127,14 +129,10 @@ const AdminPage = () => {
                       </div>
                     )}
                   </div>
-                </motion.div>
+                </div>
 
                 {/* Statistics */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.1 }}
-                >
+                <div>
                   <div className="space-y-6">
                     <div className="card p-6">
                       <div className="flex items-center space-x-4">
@@ -178,7 +176,7 @@ const AdminPage = () => {
                       </div>
                     </div>
                   </div>
-                </motion.div>
+                </div>
               </div>
             )}
           </div>

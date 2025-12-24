@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Calendar, MapPin, User, Clock, Loader } from "lucide-react";
-import { motion } from "framer-motion";
 import { eventService, registrationService } from "../services/eventService";
 import { useAuth } from "../context/AuthContext";
 import { Alert, LoadingSpinner } from "../components/Alert";
@@ -20,24 +19,29 @@ const EventDetailPage = () => {
 
   useEffect(() => {
     fetchEventDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
       const response = await eventService.getEvent(id);
-      setEvent(response.data);
+      // Backend returns: { success: true, message: "...", data: {...} }
+      setEvent(response.data?.data || response.data);
 
       // Check if user is already registered
       if (user) {
         const registrations = await registrationService.myRegistrations();
-        const registered = registrations.data.some(
-          (reg) => reg.event._id === id
+        const regsData = registrations.data?.data || registrations.data || [];
+        const registered = regsData.some(
+          (reg) => reg.event?._id === id || reg.event?._id === response.data?.data?._id
         );
         setIsRegistered(registered);
       }
     } catch (err) {
-      setError("Failed to load event details");
+      setError(
+        err.response?.data?.message || "Failed to load event details"
+      );
       console.error(err);
     } finally {
       setLoading(false);
@@ -103,11 +107,7 @@ const EventDetailPage = () => {
       </div>
 
       {/* Main Content */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="section-container py-12"
-      >
+      <div className="section-container py-12">
         {error && (
           <Alert
             type="error"
@@ -225,11 +225,7 @@ const EventDetailPage = () => {
 
           {/* Sidebar */}
           <div className="lg:col-span-1">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="card p-8 sticky top-32"
-            >
+            <div className="card p-8 sticky top-32">
               <div className="mb-6">
                 <p className="text-sm text-primary-600 mb-1">Price</p>
                 <p className="text-4xl font-bold text-primary-900">
@@ -281,10 +277,10 @@ const EventDetailPage = () => {
                   </p>
                 </div>
               </div>
-            </motion.div>
+            </div>
           </div>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };

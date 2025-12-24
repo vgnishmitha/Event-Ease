@@ -43,7 +43,7 @@ const ProtectedRoute = ({ element, requiredRole }) => {
           <p className="text-primary-600 mb-4">
             You don't have permission to access this page
           </p>
-          <a href="/" className="btn-primary inline-block">
+          <a href="/home" className="btn-primary inline-block">
             Go Home
           </a>
         </div>
