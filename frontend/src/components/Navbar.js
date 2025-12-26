@@ -47,11 +47,7 @@ const Navbar = () => {
                 Admin Panel
               </Link>
             )}
-            {user && (
-              <Link to="/my-registrations" className="btn-ghost">
-                My Registrations
-              </Link>
-            )}
+            {user && <Link to="/my-registrations" className="btn-ghost"></Link>}
           </div>
 
           {/* User Section */}
@@ -116,7 +112,10 @@ const Navbar = () => {
               </>
             )}
             {user?.role === "admin" && (
-              <Link to="/admin/panel" className="block btn-ghost w-full text-left">
+              <Link
+                to="/admin/panel"
+                className="block btn-ghost w-full text-left"
+              >
                 Admin Panel
               </Link>
             )}
