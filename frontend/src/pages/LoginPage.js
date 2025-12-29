@@ -29,14 +29,11 @@ const LoginPage = () => {
       const payload = response.data?.data || response.data || {};
       const user = payload.user || payload;
       const token = payload.token || response.data?.token;
-      
-      // Check if logged in user is admin
+
+      // Use role-aware login to store session per role
+      login(user, token);
+
       if (user.role === "admin") {
-        // Store admin session with JWT token
-        localStorage.setItem("adminToken", token);
-        localStorage.setItem("adminEmail", user.email);
-        localStorage.setItem("token", token);
-        localStorage.setItem("user", JSON.stringify(user));
         setSuccess("Welcome! Taking you to admin dashboard...");
         setTimeout(() => {
           navigate("/admin/dashboard", { replace: true });
@@ -44,14 +41,18 @@ const LoginPage = () => {
         return;
       }
 
-      // Regular user login
-      login(user, token);
+      if (user.role === "organizer") {
+        setSuccess("Welcome organizer! Redirecting to your events...");
+        setTimeout(() => navigate("/my-events"), 700);
+        return;
+      }
+
+      // Regular attendee
       setSuccess("Welcome back! Taking you home...");
-      setTimeout(() => navigate("/home"), 1500);
+      setTimeout(() => navigate("/home"), 700);
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Wrong email or password. Try again?"
+        err.response?.data?.message || "Wrong email or password. Try again?"
       );
     } finally {
       setLoading(false);

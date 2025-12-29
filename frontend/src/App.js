@@ -11,6 +11,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 
 // Pages
 import HomePage from "./pages/HomePage";
+import LandingPage from "./pages/landingpage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import EventDetailPage from "./pages/EventDetailPage";
@@ -46,7 +47,7 @@ function App() {
             />
 
             {/* Public Routes */}
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            <Route path="/" element={<LandingPage />} />
             <Route path="/home" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -87,15 +88,12 @@ function App() {
             <Route
               path="/admin/panel"
               element={
-                <ProtectedRoute
-                  element={<AdminPage />}
-                  requiredRole="admin"
-                />
+                <ProtectedRoute element={<AdminPage />} requiredRole="admin" />
               }
             />
 
             {/* Redirect unknown routes */}
-            <Route path="*" element={<Navigate to="/login" />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Layout>
       </AuthProvider>

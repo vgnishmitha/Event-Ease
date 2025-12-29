@@ -3,19 +3,43 @@ import { AlertCircle } from "lucide-react";
 
 const ProtectedRoute = ({ element, requiredRole }) => {
   let user = null;
-  const token = localStorage.getItem("token");
+  const activeRole =
+    localStorage.getItem("activeRole") ||
+    (localStorage.getItem("adminToken")
+      ? "admin"
+      : localStorage.getItem("token_organizer")
+      ? "organizer"
+      : "user");
+  const tokenKey =
+    activeRole === "admin"
+      ? "adminToken"
+      : activeRole === "organizer"
+      ? "token_organizer"
+      : "token_user";
   try {
-    const raw = localStorage.getItem("user");
+    const raw = localStorage.getItem(
+      activeRole === "admin"
+        ? "user_admin"
+        : activeRole === "organizer"
+        ? "user_organizer"
+        : "user_user"
+    );
     if (raw && raw !== "undefined") {
       user = JSON.parse(raw);
     }
   } catch (err) {
     // Clean up invalid stored user to avoid parse errors later
-    localStorage.removeItem("user");
+    localStorage.removeItem(
+      activeRole === "admin"
+        ? "user_admin"
+        : activeRole === "organizer"
+        ? "user_organizer"
+        : "user_user"
+    );
     user = null;
   }
 
-  if (!token || !user) {
+  if (!localStorage.getItem(tokenKey) || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">

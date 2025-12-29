@@ -2,14 +2,15 @@ import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { error } from "../helper/responseHelper.js";
 
-/**
- * Authentication middleware - verifies JWT token and attaches user to request
- */
 export const auth = async (req, res, next) => {
   try {
     // Validate JWT_SECRET is configured
     if (!process.env.JWT_SECRET) {
-      return error(res, "JWT_SECRET is not configured in environment variables", 500);
+      return error(
+        res,
+        "JWT_SECRET is not configured in environment variables",
+        500
+      );
     }
 
     // Extract token from Authorization header
@@ -25,7 +26,7 @@ export const auth = async (req, res, next) => {
 
     // Verify and decode token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Find user by ID from token
     const user = await User.findById(decoded.id);
     if (!user) {
@@ -46,9 +47,24 @@ export const auth = async (req, res, next) => {
   }
 };
 
-/**
- * Authorization middleware - ensures user has admin role
- */
+// Optional auth: if token present, set req.user, otherwise continue without error
+export const optionalAuth = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader) return next();
+    const token = authHeader.split(" ")[1];
+    if (!token) return next();
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.id);
+    if (!user) return next();
+    if (user.isBlocked) return error(res, "User account is blocked", 403);
+    req.user = user;
+    return next();
+  } catch (err) {
+    return next();
+  }
+};
+
 export const adminOnly = (req, res, next) => {
   if (req.user.role !== "admin") {
     return error(res, "Admin access required", 403);
@@ -56,9 +72,6 @@ export const adminOnly = (req, res, next) => {
   next();
 };
 
-/**
- * Authorization middleware - ensures user has organizer role
- */
 export const organizerOnly = (req, res, next) => {
   if (req.user.role !== "organizer") {
     return error(res, "Organizer access required", 403);

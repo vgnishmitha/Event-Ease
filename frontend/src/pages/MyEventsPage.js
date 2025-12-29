@@ -26,9 +26,7 @@ const MyEventsPage = () => {
       // Backend returns: { success: true, message: "...", data: [...] }
       setEvents(response.data?.data || response.data || []);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Couldn't load your events"
-      );
+      setError(err.response?.data?.message || "Couldn't load your events");
       console.error(err);
     } finally {
       setLoading(false);
@@ -53,13 +51,44 @@ const MyEventsPage = () => {
     setRegistrations([]);
 
     try {
-      const response = await registrationService.getEventRegistrations(event._id);
+      const response = await registrationService.getEventRegistrations(
+        event._id
+      );
       const data = response.data?.data || response.data || [];
       setRegistrations(data);
     } catch (err) {
       setError(err.response?.data?.message || "Couldn't load registrations");
     } finally {
       setLoadingRegistrations(false);
+    }
+  };
+
+  const handleBlockUser = async (userId) => {
+    try {
+      await eventService.blockUserFromEvent(selectedEvent._id, userId);
+      // reflect change in UI
+      setSelectedEvent((prev) => ({
+        ...prev,
+        blockedUsers: [...(prev.blockedUsers || []), userId],
+      }));
+      setSuccess("User blocked for this event");
+    } catch (err) {
+      setError(err.response?.data?.message || "Couldn't block user");
+    }
+  };
+
+  const handleUnblockUser = async (userId) => {
+    try {
+      await eventService.unblockUserFromEvent(selectedEvent._id, userId);
+      setSelectedEvent((prev) => ({
+        ...prev,
+        blockedUsers: (prev.blockedUsers || []).filter(
+          (id) => id !== userId && id !== String(userId)
+        ),
+      }));
+      setSuccess("User unblocked for this event");
+    } catch (err) {
+      setError(err.response?.data?.message || "Couldn't unblock user");
     }
   };
 
@@ -133,8 +162,8 @@ const MyEventsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {events.map((event) => (
                   <div key={event._id} className="relative">
-                    <EventCard 
-                      event={event} 
+                    <EventCard
+                      event={event}
                       actionLabel="View Registrations"
                       onAction={() => handleViewRegistrations(event)}
                     />
@@ -196,35 +225,67 @@ const MyEventsPage = () => {
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {registrations.map((registration) => (
-                        <div
-                          key={registration._id}
-                          className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
-                        >
-                          <div className="flex items-start space-x-3">
-                            <div className="p-2 bg-gray-100 rounded-lg">
-                              <User className="w-5 h-5 text-gray-600" />
-                            </div>
-                            <div className="flex-1">
-                              <p className="font-medium text-gray-900">
-                                {registration.user?.name || "Unknown User"}
-                              </p>
-                              {registration.user?.email && (
-                                <div className="flex items-center space-x-1.5 mt-1">
-                                  <Mail className="w-3.5 h-3.5 text-gray-400" />
-                                  <p className="text-sm text-gray-600">
-                                    {registration.user.email}
-                                  </p>
-                                </div>
-                              )}
-                              <p className="text-xs text-gray-400 mt-2">
-                                Registered on{" "}
-                                {new Date(registration.createdAt).toLocaleDateString()}
-                              </p>
+                      {registrations.map((registration) => {
+                        const isBlocked = (
+                          selectedEvent.blockedUsers || []
+                        ).some(
+                          (id) =>
+                            id === registration.user?._id ||
+                            id === String(registration.user?._id)
+                        );
+                        return (
+                          <div
+                            key={registration._id}
+                            className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors"
+                          >
+                            <div className="flex items-start space-x-3">
+                              <div className="p-2 bg-gray-100 rounded-lg">
+                                <User className="w-5 h-5 text-gray-600" />
+                              </div>
+                              <div className="flex-1">
+                                <p className="font-medium text-gray-900">
+                                  {registration.user?.name || "Unknown User"}
+                                </p>
+                                {registration.user?.email && (
+                                  <div className="flex items-center space-x-1.5 mt-1">
+                                    <Mail className="w-3.5 h-3.5 text-gray-400" />
+                                    <p className="text-sm text-gray-600">
+                                      {registration.user.email}
+                                    </p>
+                                  </div>
+                                )}
+                                <p className="text-xs text-gray-400 mt-2">
+                                  Registered on{" "}
+                                  {new Date(
+                                    registration.createdAt
+                                  ).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="ml-4 flex-shrink-0">
+                                {!isBlocked ? (
+                                  <button
+                                    onClick={() =>
+                                      handleBlockUser(registration.user._id)
+                                    }
+                                    className="px-3 py-1.5 bg-red-500 text-white rounded-md text-sm hover:bg-red-600 transition"
+                                  >
+                                    Block
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() =>
+                                      handleUnblockUser(registration.user._id)
+                                    }
+                                    className="px-3 py-1.5 bg-gray-200 text-gray-800 rounded-md text-sm hover:bg-gray-300 transition"
+                                  >
+                                    Unblock
+                                  </button>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -233,7 +294,10 @@ const MyEventsPage = () => {
                 <div className="border-t border-gray-200 p-4 bg-gray-50">
                   <div className="flex items-center justify-between">
                     <p className="text-sm text-gray-600">
-                      Total: <span className="font-medium">{registrations.length}</span>{" "}
+                      Total:{" "}
+                      <span className="font-medium">
+                        {registrations.length}
+                      </span>{" "}
                       {registrations.length === 1 ? "attendee" : "attendees"}
                     </p>
                     <button

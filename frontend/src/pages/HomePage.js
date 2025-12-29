@@ -1,19 +1,26 @@
 import React, { useState, useEffect } from "react";
-import { Search, MapPin, Filter } from "lucide-react";
+import { Search, MapPin, Filter, Heart } from "lucide-react";
 import EventCard from "../components/EventCard";
-import { eventService } from "../services/eventService";
+import { eventService, registrationService } from "../services/eventService";
+import { useAuth } from "../context/AuthContext";
 import { Alert, LoadingSpinner } from "../components/Alert";
 
 const HomePage = () => {
+  const { user } = useAuth();
   const [events, setEvents] = useState([]);
+  const [registeredEvents, setRegisteredEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingRegistered, setLoadingRegistered] = useState(false);
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     fetchEvents();
-  }, []);
+    if (user) {
+      fetchRegisteredEvents();
+    }
+  }, [user]);
 
   const fetchEvents = async () => {
     try {
@@ -23,7 +30,8 @@ const HomePage = () => {
       setEvents(response.data?.data || response.data || []);
     } catch (err) {
       setError(
-        err.response?.data?.message || "Failed to load events. Please try again."
+        err.response?.data?.message ||
+          "Failed to load events. Please try again."
       );
       console.error(err);
     } finally {
@@ -31,10 +39,29 @@ const HomePage = () => {
     }
   };
 
+  const fetchRegisteredEvents = async () => {
+    try {
+      setLoadingRegistered(true);
+      const response = await registrationService.myRegistrations();
+      const regsData = response.data?.data || response.data || [];
+      // Extract event data from registrations
+      const eventList = regsData.map((reg) => reg.event).filter(Boolean);
+      setRegisteredEvents(eventList);
+    } catch (err) {
+      console.error("Failed to load registered events:", err);
+      setRegisteredEvents([]);
+    } finally {
+      setLoadingRegistered(false);
+    }
+  };
+
   const filteredEvents = events.filter((event) => {
+    const title = (event.title || "").toString();
+    const description = (event.description || "").toString();
+    const term = (searchTerm || "").toString().toLowerCase();
     const matchesSearch =
-      event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.description.toLowerCase().includes(searchTerm.toLowerCase());
+      title.toLowerCase().includes(term) ||
+      description.toLowerCase().includes(term);
     const matchesCategory =
       selectedCategory === "all" || event.category === selectedCategory;
     return matchesSearch && matchesCategory;
@@ -82,22 +109,70 @@ const HomePage = () => {
           />
         )}
 
+        {/* Registered Events Section - Only for logged in users */}
+        {user && (
+          <div className="mb-16">
+            <div className="flex items-center space-x-3 mb-6">
+              <Heart className="w-6 h-6 text-red-500" />
+              <h2 className="text-3xl font-bold text-primary-900">
+                Your Registered Events
+              </h2>
+            </div>
+
+            {loadingRegistered ? (
+              <div className="flex justify-center items-center h-32">
+                <LoadingSpinner />
+              </div>
+            ) : registeredEvents.length === 0 ? (
+              <div className="bg-white rounded-lg p-8 text-center border border-primary-100">
+                <Heart className="w-16 h-16 text-primary-300 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-primary-900 mb-2">
+                  No Registered Events Yet
+                </h3>
+                <p className="text-primary-600 mb-4">
+                  Browse events below and register to get started!
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+                {registeredEvents.map((event) => (
+                  <div key={event._id}>
+                    <EventCard
+                      event={event}
+                      onAction={() =>
+                        (window.location.href = `/event/${event._id}`)
+                      }
+                      actionLabel="View Details"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+            <hr className="my-12 border-primary-200" />
+          </div>
+        )}
+
         {/* Filters */}
-        <div className="flex items-center space-x-2 mb-8 overflow-x-auto pb-2">
-          <Filter className="w-5 h-5 text-primary-600 flex-shrink-0" />
-          {categories.map((category) => (
-            <button
-              key={category}
-              onClick={() => setSelectedCategory(category)}
-              className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
-                selectedCategory === category
-                  ? "bg-primary-900 text-white"
-                  : "bg-white text-primary-700 border border-primary-200 hover:bg-primary-50"
-              }`}
-            >
-              {category.charAt(0).toUpperCase() + category.slice(1)}
-            </button>
-          ))}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold text-primary-900 mb-6">
+            Explore All Events
+          </h2>
+          <div className="flex items-center space-x-2 overflow-x-auto pb-2">
+            <Filter className="w-5 h-5 text-primary-600 flex-shrink-0" />
+            {categories.map((category) => (
+              <button
+                key={category}
+                onClick={() => setSelectedCategory(category)}
+                className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap transition-all ${
+                  selectedCategory === category
+                    ? "bg-primary-900 text-white"
+                    : "bg-white text-primary-700 border border-primary-200 hover:bg-primary-50"
+                }`}
+              >
+                {category.charAt(0).toUpperCase() + category.slice(1)}
+              </button>
+            ))}
+          </div>
         </div>
 
         {/* Events Grid */}

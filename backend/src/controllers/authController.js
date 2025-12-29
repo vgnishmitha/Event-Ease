@@ -3,6 +3,16 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { success, error } from "../helper/responseHelper.js";
 
+// Admin: Get all users
+export const getAllUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    success(res, "Users fetched", users);
+  } catch (err) {
+    error(res, err.message || "Failed to fetch users", 500);
+  }
+};
+
 // Register user
 export const register = async (req, res) => {
   try {
@@ -39,12 +49,12 @@ export const register = async (req, res) => {
 export const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     // Log request for debugging (remove in production)
     if (process.env.NODE_ENV !== "production") {
       console.log("Login attempt:", { email, hasPassword: !!password });
     }
-    
+
     // Validate required fields
     if (!email || !email.trim()) {
       return error(res, "Email is required", 400);
@@ -52,11 +62,15 @@ export const login = async (req, res) => {
     if (!password || !password.trim()) {
       return error(res, "Password is required", 400);
     }
-    
+
     // Validate JWT_SECRET is configured
     if (!process.env.JWT_SECRET) {
       console.error("JWT_SECRET is not configured!");
-      return error(res, "JWT_SECRET is not configured in environment variables", 500);
+      return error(
+        res,
+        "JWT_SECRET is not configured in environment variables",
+        500
+      );
     }
 
     // Find user by email (case-insensitive)
@@ -67,7 +81,11 @@ export const login = async (req, res) => {
 
     // Check if user is blocked
     if (user.isBlocked) {
-      return error(res, "Your account has been blocked. Please contact administrator.", 403);
+      return error(
+        res,
+        "Your account has been blocked. Please contact administrator.",
+        403
+      );
     }
 
     // Compare password
@@ -78,13 +96,13 @@ export const login = async (req, res) => {
 
     // Generate JWT token
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d", // Token expires in 7 days
+      expiresIn: "7d",
     });
-    
+
     // Remove password from user object before sending
     const userResponse = user.toObject();
     delete userResponse.password;
-    
+
     success(res, "Login successful", { user: userResponse, token });
   } catch (err) {
     console.error("Login error:", err);

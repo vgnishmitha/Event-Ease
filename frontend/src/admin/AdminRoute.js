@@ -7,16 +7,16 @@ import { Navigate } from "react-router-dom";
  */
 const AdminRoute = ({ children }) => {
   const adminToken = localStorage.getItem("adminToken");
-  const token = localStorage.getItem("token");
-  
-  // Check for admin token (JWT)
-  if (!adminToken || !token) {
+  const activeRole = localStorage.getItem("activeRole");
+
+  if (!adminToken && activeRole !== "admin") {
     return <Navigate to="/admin" replace />;
   }
 
   // Verify user is admin
   try {
-    const userRaw = localStorage.getItem("user");
+    const userRaw =
+      localStorage.getItem("user_admin") || localStorage.getItem("user");
     if (userRaw && userRaw !== "undefined") {
       const user = JSON.parse(userRaw);
       if (user.role !== "admin") {
@@ -31,4 +31,3 @@ const AdminRoute = ({ children }) => {
 };
 
 export default AdminRoute;
-

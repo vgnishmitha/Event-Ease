@@ -1,6 +1,7 @@
-import React from "react";
-import { MapPin, Calendar, Loader } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { MapPin, Calendar, Loader, Users } from "lucide-react";
 import { formatDate, formatCurrency } from "../utils/helpers";
+import { registrationService } from "../services/eventService";
 
 const EventCard = ({
   event,
@@ -8,6 +9,27 @@ const EventCard = ({
   actionLabel = "View Details",
   isLoading = false,
 }) => {
+  const [registrationCount, setRegistrationCount] = useState(0);
+  const [loadingCount, setLoadingCount] = useState(true);
+
+  useEffect(() => {
+    fetchRegistrationCount();
+  }, [event._id]);
+
+  const fetchRegistrationCount = async () => {
+    try {
+      setLoadingCount(true);
+      const response = await registrationService.getRegistrationCount(
+        event._id
+      );
+      setRegistrationCount(response.data?.data?.count || 0);
+    } catch (err) {
+      console.warn("Failed to fetch registration count:", err);
+      setRegistrationCount(0);
+    } finally {
+      setLoadingCount(false);
+    }
+  };
   return (
     <div className="card overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
       {/* Image Container */}
@@ -59,6 +81,18 @@ const EventCard = ({
           <div className="flex items-center space-x-2">
             <MapPin className="w-4 h-4 text-primary-500" />
             <span className="truncate">{event.location}</span>
+          </div>
+          <div className="flex items-center space-x-2">
+            <Users className="w-4 h-4 text-primary-500" />
+            <span>
+              {loadingCount ? (
+                <span className="text-xs text-primary-500">Loading...</span>
+              ) : (
+                `${registrationCount} ${
+                  registrationCount === 1 ? "person" : "people"
+                } registered`
+              )}
+            </span>
           </div>
           {event.price && (
             <div className="flex items-center space-x-2">

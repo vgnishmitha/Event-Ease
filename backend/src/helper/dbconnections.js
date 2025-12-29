@@ -15,7 +15,7 @@ const ADMIN_NAME = "Admin User";
 const ensureAdminExists = async () => {
   try {
     const existingAdmin = await User.findOne({ email: ADMIN_EMAIL });
-    
+
     if (existingAdmin) {
       // Update existing admin - ensure role, password, and status are correct
       const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 10);
@@ -23,7 +23,7 @@ const ensureAdminExists = async () => {
       existingAdmin.isBlocked = false;
       existingAdmin.password = hashedPassword; // Reset password to ensure it matches
       await existingAdmin.save();
-      console.log("✅ Admin user verified and updated in database");
+      console.log(" Admin user verified and updated in database");
       return;
     }
 
@@ -36,9 +36,9 @@ const ensureAdminExists = async () => {
       role: "admin",
       isBlocked: false,
     });
-    console.log("✅ Admin user created in database");
+    console.log("Admin user created in database");
   } catch (err) {
-    console.log("⚠️  Could not create admin user:", err.message);
+    console.log(" Could not create admin user:", err.message);
     // Don't exit - server can still run without admin
   }
 };
@@ -60,7 +60,7 @@ const connectDB = async () => {
     // Ensure admin user exists
     await ensureAdminExists();
   } catch (err) {
-    console.log("❌ DB Connection Error:", err.message);
+    console.log(" DB Connection Error:", err.message);
     process.exit(1);
   }
 };

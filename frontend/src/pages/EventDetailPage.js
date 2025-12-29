@@ -16,6 +16,7 @@ const EventDetailPage = () => {
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
+  const [registrationCount, setRegistrationCount] = useState(0);
 
   useEffect(() => {
     fetchEventDetails();
@@ -29,19 +30,29 @@ const EventDetailPage = () => {
       // Backend returns: { success: true, message: "...", data: {...} }
       setEvent(response.data?.data || response.data);
 
+      // Fetch registration count
+      try {
+        const countResponse = await registrationService.getRegistrationCount(
+          id
+        );
+        setRegistrationCount(countResponse.data?.data?.count || 0);
+      } catch (countErr) {
+        console.warn("Failed to fetch registration count:", countErr);
+        setRegistrationCount(0);
+      }
+
       // Check if user is already registered
       if (user) {
         const registrations = await registrationService.myRegistrations();
         const regsData = registrations.data?.data || registrations.data || [];
         const registered = regsData.some(
-          (reg) => reg.event?._id === id || reg.event?._id === response.data?.data?._id
+          (reg) =>
+            reg.event?._id === id || reg.event?._id === response.data?.data?._id
         );
         setIsRegistered(registered);
       }
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Couldn't load event details"
-      );
+      setError(err.response?.data?.message || "Couldn't load event details");
       console.error(err);
     } finally {
       setLoading(false);
@@ -60,9 +71,7 @@ const EventDetailPage = () => {
       setSuccess("You're registered!");
       setIsRegistered(true);
     } catch (err) {
-      setError(
-        err.response?.data?.message || "Couldn't register. Try again?"
-      );
+      setError(err.response?.data?.message || "Couldn't register. Try again?");
     } finally {
       setRegistering(false);
     }
@@ -97,7 +106,7 @@ const EventDetailPage = () => {
       <div className="bg-white border-b border-primary-100 sticky top-16 z-40">
         <div className="section-container">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/home")}
             className="flex items-center space-x-2 py-4 text-primary-600 hover:text-primary-900 transition"
           >
             <ArrowLeft className="w-5 h-5" />
@@ -109,11 +118,7 @@ const EventDetailPage = () => {
       {/* Main Content */}
       <div className="section-container py-12">
         {error && (
-          <Alert
-            type="error"
-            message={error}
-            onClose={() => setError(null)}
-          />
+          <Alert type="error" message={error} onClose={() => setError(null)} />
         )}
         {success && (
           <Alert
@@ -217,6 +222,17 @@ const EventDetailPage = () => {
                     </div>
                   </div>
                 )}
+
+                <div className="flex items-center space-x-3">
+                  <User className="w-6 h-6 text-primary-500" />
+                  <div>
+                    <p className="text-sm text-primary-600">Registered</p>
+                    <p className="font-semibold text-primary-900">
+                      {registrationCount}{" "}
+                      {registrationCount === 1 ? "person" : "people"}
+                    </p>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -267,6 +283,18 @@ const EventDetailPage = () => {
               <div className="mt-8 pt-8 border-t border-primary-100 space-y-4">
                 <div>
                   <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide">
+                    Attendance
+                  </p>
+                  <p className="text-lg font-bold text-primary-900 mt-2">
+                    {registrationCount}{" "}
+                    {registrationCount === 1 ? "person" : "people"} registered
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 pt-8 border-t border-primary-100 space-y-4">
+                <div>
+                  <p className="text-xs font-semibold text-primary-600 uppercase tracking-wide">
                     About This Event
                   </p>
                   <p className="text-sm text-primary-700 mt-2">
@@ -275,6 +303,57 @@ const EventDetailPage = () => {
                   </p>
                 </div>
               </div>
+
+              {user?.role === "admin" && (
+                <div className="mt-6">
+                  <p className="text-sm font-medium text-primary-700 mb-2">
+                    Admin Controls
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={async () => {
+                        try {
+                          await eventService.adminUpdateEvent(id, {
+                            isUpcoming: !event.isUpcoming,
+                          });
+                          setSuccess("Event updated");
+                          fetchEventDetails();
+                        } catch (err) {
+                          setError(
+                            err.response?.data?.message ||
+                              "Failed to update event"
+                          );
+                        }
+                      }}
+                      className={`px-3 py-2 rounded-lg border text-sm ${
+                        event.isUpcoming
+                          ? "bg-indigo-50 border-indigo-300 text-indigo-700"
+                          : "bg-white border-gray-200 text-gray-700"
+                      }`}
+                    >
+                      {event.isUpcoming ? "Unset Upcoming" : "Set as Upcoming"}
+                    </button>
+                    <button
+                      onClick={async () => {
+                        if (!window.confirm("Delete this event?")) return;
+                        try {
+                          await eventService.adminDeleteEvent(id);
+                          setSuccess("Event deleted");
+                          navigate("/");
+                        } catch (err) {
+                          setError(
+                            err.response?.data?.message ||
+                              "Failed to delete event"
+                          );
+                        }
+                      }}
+                      className="px-3 py-2 rounded-lg border bg-white border-gray-200 text-gray-700"
+                    >
+                      Delete Event
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>

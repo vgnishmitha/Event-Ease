@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const { user, logout } = useAuth();
+  const { user, logout, activeRole, availableRoles, switchRole } = useAuth();
 
   const handleLogout = () => {
     logout();
@@ -32,6 +32,11 @@ const Navbar = () => {
             <Link to="/home" className="btn-ghost">
               Browse Events
             </Link>
+            {user && (
+              <Link to="/my-registrations" className="btn-ghost">
+                Registered Events
+              </Link>
+            )}
             {user?.role === "organizer" && (
               <>
                 <Link to="/create-event" className="btn-ghost">
@@ -47,7 +52,6 @@ const Navbar = () => {
                 Admin Panel
               </Link>
             )}
-            {user && <Link to="/my-registrations" className="btn-ghost"></Link>}
           </div>
 
           {/* User Section */}
@@ -60,6 +64,19 @@ const Navbar = () => {
                     {user.name}
                   </span>
                 </div>
+                {availableRoles && availableRoles.length > 1 && (
+                  <select
+                    value={activeRole}
+                    onChange={(e) => switchRole(e.target.value)}
+                    className="ml-2 px-2 py-1 border rounded-md text-sm"
+                  >
+                    {availableRoles.map((r) => (
+                      <option key={r} value={r}>
+                        {r.charAt(0).toUpperCase() + r.slice(1)}
+                      </option>
+                    ))}
+                  </select>
+                )}
                 <button onClick={handleLogout} className="btn-ghost">
                   <LogOut className="w-4 h-4" />
                 </button>
@@ -95,6 +112,14 @@ const Navbar = () => {
             <Link to="/home" className="block btn-ghost w-full text-left">
               Browse Events
             </Link>
+            {user && (
+              <Link
+                to="/my-registrations"
+                className="block btn-ghost w-full text-left"
+              >
+                Registered Events
+              </Link>
+            )}
             {user?.role === "organizer" && (
               <>
                 <Link
@@ -117,14 +142,6 @@ const Navbar = () => {
                 className="block btn-ghost w-full text-left"
               >
                 Admin Panel
-              </Link>
-            )}
-            {user && (
-              <Link
-                to="/my-registrations"
-                className="block btn-ghost w-full text-left"
-              >
-                My Registrations
               </Link>
             )}
             {!user ? (

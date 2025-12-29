@@ -1,14 +1,8 @@
 import Event from "../models/Event.js";
 import { success, error } from "../helper/responseHelper.js";
 
-/**
- * Create a new event
- * Only organizers can create events. Attendees can only register for events.
- * Prevents duplicate events with same title, date, category for the same organizer
- */
 export const createEvent = async (req, res) => {
   try {
-    // Defense in depth: Ensure only organizers can create events
     if (req.user.role !== "organizer") {
       return error(
         res,
@@ -52,8 +46,21 @@ export const createEvent = async (req, res) => {
  */
 export const getEvents = async (req, res) => {
   try {
-    const { status } = req.query;
-    const query = status ? { status } : {};
+    const { status, upcoming } = req.query;
+    const query = {};
+    if (status) query.status = status;
+    if (typeof upcoming !== "undefined") {
+      // treat truthy values ('true', '1') as true
+      const isUpcoming =
+        upcoming === "true" || upcoming === "1" || upcoming === true;
+      query.isUpcoming = isUpcoming;
+    }
+
+    // If user is authenticated, exclude events where they're blocked
+    if (req.user && req.user._id) {
+      query.blockedUsers = { $ne: req.user._id };
+    }
+
     const events = await Event.find(query).populate("organizer");
     success(res, "Events fetched", events);
   } catch (err) {
@@ -69,6 +76,13 @@ export const getEvent = async (req, res) => {
     const event = await Event.findById(req.params.id).populate("organizer");
     if (!event) {
       return error(res, "Event not found", 404);
+    }
+    // If the requester is authenticated and is blocked from this event, deny access
+    if (req.user && event.blockedUsers && event.blockedUsers.length) {
+      const isBlocked = event.blockedUsers.some(
+        (id) => id.toString() === req.user._id.toString()
+      );
+      if (isBlocked) return error(res, "You are blocked from viewing this event", 403);
     }
     success(res, "Event fetched", event);
   } catch (err) {
@@ -146,6 +160,33 @@ export const approveEvent = async (req, res) => {
   }
 };
 
+// Admin update any event (status, isUpcoming or other fields)
+export const adminUpdateEvent = async (req, res) => {
+  try {
+    const updates = req.body;
+    const event = await Event.findByIdAndUpdate(req.params.id, updates, {
+      new: true,
+      runValidators: true,
+    }).populate("organizer");
+    if (!event) return error(res, "Event not found", 404);
+    success(res, "Event updated by admin", event);
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+// Admin delete any event
+export const adminDeleteEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return error(res, "Event not found", 404);
+    await Event.findByIdAndDelete(req.params.id);
+    success(res, "Event deleted by admin");
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
 // My events for organizer
 export const myEvents = async (req, res) => {
   try {
@@ -166,5 +207,44 @@ export const myEvents = async (req, res) => {
     success(res, "Organizer events fetched", events);
   } catch (err) {
     error(res, err.message || "Server error", 500);
+  }
+};
+
+// Organizer blocks a user from viewing a specific event
+export const blockUserFromEvent = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const event = await Event.findById(req.params.id);
+    if (!event) return error(res, "Event not found", 404);
+    if (event.organizer.toString() !== req.user._id.toString())
+      return error(res, "You can only modify your own events", 403);
+    if (!userId) return error(res, "userId is required", 400);
+    if (!event.blockedUsers) event.blockedUsers = [];
+    if (event.blockedUsers.includes(userId))
+      return error(res, "User already blocked for this event", 400);
+    event.blockedUsers.push(userId);
+    await event.save();
+    success(res, "User blocked for this event", event);
+  } catch (err) {
+    error(res, err.message);
+  }
+};
+
+// Organizer unblocks a user for a specific event
+export const unblockUserFromEvent = async (req, res) => {
+  try {
+    const { userId } = req.body;
+    const event = await Event.findById(req.params.id);
+    if (!event) return error(res, "Event not found", 404);
+    if (event.organizer.toString() !== req.user._id.toString())
+      return error(res, "You can only modify your own events", 403);
+    if (!userId) return error(res, "userId is required", 400);
+    event.blockedUsers = (event.blockedUsers || []).filter(
+      (id) => id.toString() !== userId
+    );
+    await event.save();
+    success(res, "User unblocked for this event", event);
+  } catch (err) {
+    error(res, err.message);
   }
 };

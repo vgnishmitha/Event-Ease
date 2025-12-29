@@ -39,10 +39,20 @@ const eventSchema = new mongoose.Schema(
       ref: "User",
       required: [true, "Organizer is required"],
     },
+    blockedUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
+    },
+    isUpcoming: {
+      type: Boolean,
+      default: false,
     },
   },
   { timestamps: true }
