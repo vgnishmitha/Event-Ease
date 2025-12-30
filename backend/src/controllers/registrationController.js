@@ -6,8 +6,24 @@ import { success, error } from "../helper/responseHelper.js";
 export const registerForEvent = async (req, res) => {
   try {
     const { eventId } = req.params;
+    
+    // Organizers cannot register for events
+    if (req.user.role === "organizer") {
+      return error(res, "Organizers cannot register for events. Please use an attendee account.", 403);
+    }
+    
     const event = await Event.findById(eventId);
     if (!event) return error(res, "Event not found", 404);
+
+    // Check if user is blocked from this event
+    if (event.blockedUsers && event.blockedUsers.length > 0) {
+      const isBlocked = event.blockedUsers.some(
+        (id) => id.toString() === req.user._id.toString()
+      );
+      if (isBlocked) {
+        return error(res, "You are blocked from registering for this event", 403);
+      }
+    }
 
     const existing = await Registration.findOne({
       event: eventId,
@@ -36,8 +52,25 @@ export const myRegistrations = async (req, res) => {
   try {
     const registrations = await Registration.find({
       user: req.user._id,
-    }).populate("event");
-    success(res, "My registrations fetched", registrations);
+    }).populate({
+      path: "event",
+      populate: { path: "organizer", select: "name email" }
+    });
+    
+    // Add isBlocked flag to each registration
+    const registrationsWithBlockStatus = registrations.map(reg => {
+      const regObj = reg.toObject();
+      if (regObj.event && regObj.event.blockedUsers) {
+        regObj.isBlocked = regObj.event.blockedUsers.some(
+          (id) => id.toString() === req.user._id.toString()
+        );
+      } else {
+        regObj.isBlocked = false;
+      }
+      return regObj;
+    });
+    
+    success(res, "My registrations fetched", registrationsWithBlockStatus);
   } catch (err) {
     error(res, err.message || "Failed to fetch registrations", 500);
   }

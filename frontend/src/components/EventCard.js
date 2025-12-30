@@ -13,10 +13,13 @@ const EventCard = ({
   const [loadingCount, setLoadingCount] = useState(true);
 
   useEffect(() => {
-    fetchRegistrationCount();
-  }, [event._id]);
+    if (event?._id) {
+      fetchRegistrationCount();
+    }
+  }, [event?._id]);
 
   const fetchRegistrationCount = async () => {
+    if (!event?._id) return;
     try {
       setLoadingCount(true);
       const response = await registrationService.getRegistrationCount(
@@ -30,6 +33,12 @@ const EventCard = ({
       setLoadingCount(false);
     }
   };
+
+  // Guard against null/undefined event
+  if (!event) {
+    return null;
+  }
+
   return (
     <div className="card overflow-hidden group cursor-pointer hover:shadow-lg transition-shadow">
       {/* Image Container */}

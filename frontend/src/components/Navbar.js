@@ -18,7 +18,7 @@ const Navbar = () => {
       <div className="section-container">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
-          <Link to="/home" className="flex items-center space-x-2">
+          <Link to={user?.role === "organizer" ? "/my-events" : "/home"} className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-primary-900 rounded-lg flex items-center justify-center">
               <Calendar className="w-5 h-5 text-white" />
             </div>
@@ -29,10 +29,12 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-1">
-            <Link to="/home" className="btn-ghost">
-              Browse Events
-            </Link>
-            {user && (
+            {user?.role !== "organizer" && (
+              <Link to="/home" className="btn-ghost">
+                Browse Events
+              </Link>
+            )}
+            {user && user.role !== "organizer" && (
               <Link to="/my-registrations" className="btn-ghost">
                 Registered Events
               </Link>
@@ -109,10 +111,12 @@ const Navbar = () => {
         {/* Mobile Menu */}
         {mobileOpen && (
           <div className="md:hidden pb-4 space-y-2 border-t border-primary-100 pt-4">
-            <Link to="/home" className="block btn-ghost w-full text-left">
-              Browse Events
-            </Link>
-            {user && (
+            {user?.role !== "organizer" && (
+              <Link to="/home" className="block btn-ghost w-full text-left">
+                Browse Events
+              </Link>
+            )}
+            {user && user.role !== "organizer" && (
               <Link
                 to="/my-registrations"
                 className="block btn-ghost w-full text-left"

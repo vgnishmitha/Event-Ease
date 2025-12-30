@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Calendar, MapPin, User, Clock, Loader } from "lucide-react";
+import { ArrowLeft, Calendar, MapPin, User, Clock, Loader, Ban } from "lucide-react";
 import { eventService, registrationService } from "../services/eventService";
 import { useAuth } from "../context/AuthContext";
 import { Alert, LoadingSpinner } from "../components/Alert";
@@ -9,7 +9,7 @@ import { formatDate, formatCurrency } from "../utils/helpers";
 const EventDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const [event, setEvent] = useState(null);
   const [loading, setLoading] = useState(true);
   const [registering, setRegistering] = useState(false);
@@ -17,18 +17,35 @@ const EventDetailPage = () => {
   const [success, setSuccess] = useState(null);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrationCount, setRegistrationCount] = useState(0);
+  const [isBlocked, setIsBlocked] = useState(false);
+  const isOrganizer = user?.role === "organizer";
+  const isEventOwner = event?.organizer?._id === user?._id || event?.organizer === user?._id;
 
   useEffect(() => {
+    // If user is globally blocked, don't fetch event
+    if (user?.isBlocked) {
+      setLoading(false);
+      return;
+    }
     fetchEventDetails();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [id, user]);
 
   const fetchEventDetails = async () => {
     try {
       setLoading(true);
       const response = await eventService.getEvent(id);
       // Backend returns: { success: true, message: "...", data: {...} }
-      setEvent(response.data?.data || response.data);
+      const eventData = response.data?.data || response.data;
+      setEvent(eventData);
+
+      // Check if user is blocked from this event
+      if (user && eventData?.blockedUsers) {
+        const blocked = eventData.blockedUsers.some(
+          (blockedId) => blockedId.toString() === user._id?.toString()
+        );
+        setIsBlocked(blocked);
+      }
 
       // Fetch registration count
       try {
@@ -47,12 +64,18 @@ const EventDetailPage = () => {
         const regsData = registrations.data?.data || registrations.data || [];
         const registered = regsData.some(
           (reg) =>
-            reg.event?._id === id || reg.event?._id === response.data?.data?._id
+            reg.event?._id === id || reg.event?._id === eventData?._id
         );
         setIsRegistered(registered);
       }
     } catch (err) {
-      setError(err.response?.data?.message || "Couldn't load event details");
+      // Check if blocked error from backend
+      if (err.response?.status === 403 && err.response?.data?.message?.toLowerCase().includes("blocked")) {
+        setIsBlocked(true);
+        setError("You are blocked from viewing this event");
+      } else {
+        setError(err.response?.data?.message || "Couldn't load event details");
+      }
       console.error(err);
     } finally {
       setLoading(false);
@@ -62,6 +85,12 @@ const EventDetailPage = () => {
   const handleRegister = async () => {
     if (!user) {
       navigate("/login");
+      return;
+    }
+
+    // Organizers cannot register for events
+    if (user.role === "organizer") {
+      setError("Organizers cannot register for events. Please use an attendee account.");
       return;
     }
 
@@ -85,7 +114,63 @@ const EventDetailPage = () => {
     );
   }
 
+  // If user is globally blocked by admin
+  if (user?.isBlocked) {
+    return (
+      <div className="min-h-screen bg-primary-50 flex items-center justify-center">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-white rounded-2xl shadow-lg border border-red-200 p-8 text-center">
+            <div className="p-4 bg-red-100 rounded-full w-fit mx-auto mb-6">
+              <Ban className="w-16 h-16 text-red-600" />
+            </div>
+            <h1 className="text-3xl font-bold text-red-700 mb-4">
+              Account Blocked
+            </h1>
+            <p className="text-gray-600 mb-6 leading-relaxed">
+              Your account has been blocked by the administrator. You cannot view or register for any events.
+            </p>
+            <p className="text-sm text-gray-500 mb-8">
+              If you believe this is a mistake, please contact the administrator for assistance.
+            </p>
+            <button
+              onClick={() => {
+                logout();
+                navigate("/login");
+              }}
+              className="btn-primary w-full"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (!event) {
+    // Show blocked message if user is blocked
+    if (isBlocked) {
+      return (
+        <div className="min-h-screen bg-primary-50 flex items-center justify-center">
+          <div className="text-center card p-8 max-w-md">
+            <div className="p-4 bg-red-100 rounded-full w-fit mx-auto mb-4">
+              <Ban className="w-12 h-12 text-red-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-red-700 mb-2">
+              Access Blocked
+            </h2>
+            <p className="text-gray-600 mb-6">
+              You have been blocked from viewing this event by the organizer. 
+              If you believe this is a mistake, please contact the event organizer.
+            </p>
+            <button onClick={() => navigate("/home")} className="btn-primary">
+              Browse Other Events
+            </button>
+          </div>
+        </div>
+      );
+    }
+    
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -249,9 +334,13 @@ const EventDetailPage = () => {
 
               <button
                 onClick={handleRegister}
-                disabled={registering || isRegistered}
+                disabled={registering || isRegistered || isBlocked || isOrganizer}
                 className={`w-full py-3 rounded-lg font-semibold transition-all ${
-                  isRegistered
+                  isOrganizer
+                    ? "bg-gray-100 text-gray-500 cursor-not-allowed"
+                    : isBlocked
+                    ? "bg-red-100 text-red-700 cursor-not-allowed"
+                    : isRegistered
                     ? "bg-green-100 text-green-700 cursor-not-allowed"
                     : "btn-primary"
                 }`}
@@ -261,12 +350,31 @@ const EventDetailPage = () => {
                     <Loader className="w-4 h-4 animate-spin" />
                     <span>Registering...</span>
                   </span>
+                ) : isOrganizer ? (
+                  "Organizers Cannot Register"
+                ) : isBlocked ? (
+                  <span className="flex items-center justify-center space-x-2">
+                    <Ban className="w-4 h-4" />
+                    <span>Blocked</span>
+                  </span>
                 ) : isRegistered ? (
                   "✓ Registered"
                 ) : (
                   "Register for Event"
                 )}
               </button>
+
+              {isOrganizer && (
+                <p className="text-center text-sm text-gray-500 mt-4">
+                  As an organizer, you can only create events, not register for them
+                </p>
+              )}
+
+              {isBlocked && !isOrganizer && (
+                <p className="text-center text-sm text-red-600 mt-4">
+                  You have been blocked from this event by the organizer
+                </p>
+              )}
 
               {!user && (
                 <p className="text-center text-sm text-primary-600 mt-4">
